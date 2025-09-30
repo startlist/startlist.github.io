@@ -17,13 +17,37 @@
   h1{font-size:20px;margin:0}
   .toolbar{display:flex;flex-wrap:wrap;gap:8px}
   .controls{display:flex;gap:6px}
-  button,select,input[type="search"],a.ics,a.site,a.add{
+  button,select,input[type="search"],a.ics,a.site,a.add,a.refresh{
     background:var(--card);color:var(--ink);border:1px solid #242a38;border-radius:10px;padding:6px 10px;font-size:14px;text-decoration:none;cursor:pointer
   }
-  button:hover,a.ics:hover,a.site:hover,a.add:hover{border-color:#2f384b}
+  button:hover,a.ics:hover,a.site:hover,a.add:hover,a.refresh:hover{border-color:#2f384b}
   input[type="search"]{min-width:0;flex:1}
+
+  /* grid: Next Events FIRST */
   .grid{display:grid;grid-template-columns:1fr;gap:10px}
+  @media (min-width: 900px){ .grid{grid-template-columns:1.3fr 1fr;gap:16px} }
   .panel{background:var(--card);border:1px solid #1b2130;border-radius:14px;padding:10px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+
+  /* Next Events */
+  .aside h2{font-size:16px;margin:4px 0 8px}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .card{background:#0f131c;border:1px solid #21293b;border-radius:12px;padding:10px}
+  .when{color:var(--muted);font-size:13px}
+  .title{font-size:15px;font-weight:700}
+  .type{font-size:12px;color:#b2c1d1}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+  .badge{font-size:11px;padding:3px 6px;border-radius:8px;border:1px solid #2a3550}
+  .badge.info{background:#37474F;color:#fff;border:1px solid #455A64}
+  .btnline{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+  a.ics,a.site{font-size:12px}
+
+  /* Vote bar */
+  .votes{display:flex;align-items:center;gap:8px;margin-top:8px}
+  .vbtn{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;border:1px solid #2a3550;background:#131a28;color:#eaf1ff;cursor:pointer;font-size:16px;line-height:1}
+  .vbtn.active{border-color:#5b9cff;box-shadow:0 0 0 1px rgba(91,156,255,.35) inset}
+  .score{min-width:2ch;text-align:center;font-weight:700}
+
+  /* Calendar compact */
   .cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:2px 1px 6px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
   .cal-head div{text-align:center}
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
@@ -37,23 +61,23 @@
   .ev{font-size:12px;padding:4px 6px;border-radius:9px;background:#141927;border:1px solid #20283a;margin:3px 0}
   .ev .title{font-weight:600}
   .ev .meta{color:var(--muted);font-size:11px}
-  .aside h2{font-size:16px;margin:4px 0 8px}
-  .list{display:flex;flex-direction:column;gap:8px}
-  .card{background:#0f131c;border:1px solid #21293b;border-radius:12px;padding:10px}
-  .when{color:var(--muted);font-size:13px}
-  .title{font-size:15px;font-weight:700}
-  .type{font-size:12px;color:#b2c1d1}
-  .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
-  .badge{font-size:11px;padding:3px 6px;border-radius:8px;border:1px solid #2a3550}
-  .badge.info{background:#37474F;color:#fff;border:1px solid #455A64}
+
+  /* Type colors */
   .swim{background:#2196F3;color:#fff}
   .run{background:#E53935;color:#fff}
   .bike{background:#43A047;color:#fff}
   .tri{background:#8E24AA;color:#fff}
   .other{background:#FFD166;color:#000}
-  .btnline{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
-  a.ics,a.site{font-size:12px}
   .hint{color:var(--muted);font-size:12px;margin-top:6px}
+
+  /* Toast */
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:16px;background:#0f1522;border:1px solid #2a3550;color:#eaf1ff;padding:8px 12px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.35);font-size:13px;display:none;z-index:9999}
+  .toast.show{display:block;animation:fade 2.8s ease}
+  @keyframes fade{0%{opacity:0;transform:translate(-50%,10px)}10%{opacity:1;transform:translate(-50%,0)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-6px)}}
+
+  /* FAB (mobile) */
+  .fab{position:fixed;right:14px;bottom:14px;background:#1a2334;color:#eaf1ff;border:1px solid #2a3550;border-radius:999px;padding:10px 14px;text-decoration:none;box-shadow:0 10px 25px rgba(0,0,0,.35);font-size:14px}
+  @media (min-width: 900px){ .fab{display:none} }
 </style>
 </head>
 <body>
@@ -69,181 +93,165 @@
       </div>
       <select id="typeFilter"><option value="">Alle Typen</option></select>
       <input id="searchBox" type="search" placeholder="Suche…" />
+      <a id="addBtn" class="add" target="_blank" rel="noopener">Event hinzufügen</a>
+      <a id="refreshBtn" class="refresh" title="Jetzt aktualisieren">↻</a>
     </div>
   </header>
 
   <div class="grid">
+    <!-- Next Events FIRST -->
+    <aside class="panel aside">
+      <h2>Nächste Events</h2>
+      <div id="nextList" class="list" aria-live="polite"></div>
+      <div class="hint" id="lastUpdated"></div>
+    </aside>
+
+    <!-- Calendar SECOND -->
     <section class="panel calendar">
       <div class="cal-head">
         <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div><div>Fr</div><div>Sa</div><div>So</div>
       </div>
-      <div class="cal-grid" id="calGrid"></div>
-      <div class="hint">Tipp: Hover/Tippen auf ein Datum zeigt Events. „Next Events“ passt sich den Filtern an.</div>
+      <div class="cal-grid" id="calGrid" role="grid" aria-label="Monat"></div>
+      <div class="hint">Tipp: Hover/Tippen auf ein Datum zeigt Events. „Nächste Events“ passt sich den Filtern an.</div>
     </section>
-    <aside class="panel aside">
-      <h2>Nächste Events</h2>
-      <div id="nextList" class="list"></div>
-    </aside>
   </div>
 </div>
 
-<script>
-const CSV_URL = "https://docs.google.com/spreadsheets/d/1qjMcZh8LuMe7aUglPClULLGtmIR3xBpLzzQvTGbLRLg/gviz/tq?tqx=out:csv&sheet=Sheet1";
+<a id="fabAdd" class="fab" target="_blank" rel="noopener">＋ Event</a>
+<div id="toast" class="toast">Aktualisiert</div>
 
+<script>
+/* ========== CONFIG ========== */
+const CSV_URL   = "https://docs.google.com/spreadsheets/d/1qjMcZh8LuMe7aUglPClULLGtmIR3xBpLzzQvTGbLRLg/gviz/tq?tqx=out:csv&sheet=Sheet1";
+const FORM_URL  = "https://docs.google.com/forms/d/e/1FAIpQLScPCj_Ek48cNRdwLCvLHDwYnJhf0lpZFVXFWKwwLu_NkS8uCA/viewform";
+
+/* Replace with your deployed Apps Script web app URL */
+const VOTES_API = "https://script.google.com/macros/s/AKfycbym6boFDq7iBOpfUNTBUGu2rUFVEgPhTnj8QY9Uz1ncA_Zlgh0Hy8fkGMZuyBdlizL5gQ/exec"; // e.g. "https://script.google.com/macros/s/AKfycb.../exec"
+
+/* Persistent cache keys */
+const CACHE_VERSION = 'v3';
+const LS_TEXT   = `startlist_csv_text_${CACHE_VERSION}`;
+const LS_EVENTS = `startlist_events_${CACHE_VERSION}`;
+const LS_TIME   = `startlist_cached_at_${CACHE_VERSION}`;
+const MY_VOTES_KEY = 'startlist_myvotes_v1';
+
+/* ========== READY ========== */
 document.addEventListener('DOMContentLoaded', init);
 
-/* CSV Parser */
+/* ========== CSV PARSER (robust) ========== */
 function parseCSV(text) {
-  // strip BOM
+  if (!text) return [];
   if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-
-  // auto-detect delimiter from the first line
   const firstLine = text.split(/\r\n|\n|\r/, 1)[0] ?? '';
-  // count commas/semicolons outside quotes (simple heuristic)
   const commaCount = (firstLine.match(/,/g) || []).length;
   const semiCount  = (firstLine.match(/;/g) || []).length;
   const delim = semiCount > commaCount ? ';' : ',';
 
-  const rows = [];
-  let row = [];
-  let cur = '';
-  let i = 0;
-  let inQuotes = false;
-
+  const rows = []; let row = []; let cur = ''; let i = 0; let inQuotes = false;
   while (i < text.length) {
     const c = text[i];
-
     if (inQuotes) {
-      if (c === '"') {
-        const n = text[i + 1];
-        if (n === '"') { // escaped quote
-          cur += '"';
-          i += 2;
-          continue;
-        } else {
-          inQuotes = false;
-          i++;
-          continue;
-        }
-      } else {
-        cur += c;
-        i++;
-        continue;
-      }
-    } else {
-      if (c === '"') {
-        inQuotes = true;
-        i++;
-        continue;
-      }
-      if (c === delim) {
-        row.push(cur);
-        cur = '';
-        i++;
-        continue;
-      }
-      if (c === '\n') {
-        row.push(cur);
-        rows.push(row);
-        row = [];
-        cur = '';
-        i++;
-        continue;
-      }
-      if (c === '\r') {
-        // handle \r or \r\n
-        row.push(cur);
-        rows.push(row);
-        row = [];
-        cur = '';
-        if (text[i + 1] === '\n') i += 2; else i += 1;
-        continue;
-      }
-      cur += c;
-      i++;
+      if (c === '"') { if (text[i+1] === '"') { cur += '"'; i += 2; } else { inQuotes = false; i++; } continue; }
+      cur += c; i++; continue;
     }
+    if (c === '"') { inQuotes = true; i++; continue; }
+    if (c === delim) { row.push(cur); cur=''; i++; continue; }
+    if (c === '\n' || c === '\r') { row.push(cur); rows.push(row); row=[]; cur=''; if (c === '\r' && text[i+1]==='\n') i++; i++; continue; }
+    cur += c; i++;
   }
-  // push the last field/row even if no newline at EOF
-  if (cur.length > 0 || row.length > 0) {
-    row.push(cur);
-    rows.push(row);
-  }
-
-  // remove completely empty rows
+  if (cur.length || row.length) { row.push(cur); rows.push(row); }
   return rows.filter(r => r.length && r.some(v => v !== ''));
 }
 
-
-/* Date utils */
+/* ========== DATE/UTILS ========== */
 function parseGermanDate(s){
   if(!s) return null; s=String(s).trim();
-  const m=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
-  if(m) return new Date(+m[3],+m[2]-1,+m[1]);
+  const m=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})/); if(m) return new Date(+m[3],+m[2]-1,+m[1]);
   return new Date(s);
 }
 function fmtDate(d){return d.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});}
 function fmtDayKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,'0')+"-"+String(d.getDate()).padStart(2,'0');}
 function yyyyMMdd(d){return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
 function slug(s){return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');}
+function sanitizeUrl(u){ if(!u) return ''; if(/^www\./i.test(u)) return 'https://'+u; if(!/^https?:\/\//i.test(u)) return 'https://'+u; return u; }
 
-/* URL sanitizer */
-function sanitizeUrl(u){
-  if(!u) return '';
-  if(/^www\./i.test(u)) return 'https://' + u;
-  if(!/^https?:\/\//i.test(u)) return 'https://' + u;
-  return u;
+/* ========== FETCH ========== */
+async function fetchCSVWithTimeout(url, timeoutMs=6000){
+  const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    return await res.text();
+  } finally { clearTimeout(t); }
 }
 
-/* Data loading */
-async function loadCSV(url){
-  const r=await fetch(url); if(!r.ok) throw new Error(r.status);
-  const rows=parseCSV(await r.text()); if(!rows.length) return [];
-  const header=rows[0].map(h=>h.trim());
-  const idx={
-    date:header.findIndex(h=>/Wann findet/.test(h)),
-    title:header.findIndex(h=>/Eventtitel/.test(h)),
-    type:header.findIndex(h=>/Typ/.test(h)),
-    info:header.findIndex(h=>/Infos/.test(h)),
-    dist:header.findIndex(h=>/Distanz/.test(h)),
-    site:header.findIndex(h=>/Website/.test(h)),
-    addr:header.findIndex(h=>/Adresse/i.test(h))     // NEW
+/* ========== MAP ROWS → EVENTS ========== */
+function mapRowsToEvents(rows){
+  if (!rows.length) return [];
+  const header = rows[0].map(h=>h.trim());
+  const idx = {
+    date: header.findIndex(h => /Wann findet/i.test(h)),
+    title:header.findIndex(h => /Eventtitel/i.test(h)),
+    type: header.findIndex(h => /Typ|Welcher Typ/i.test(h)),
+    info: header.findIndex(h => /Infos/i.test(h)),
+    dist: header.findIndex(h => /Distanz|Distanzen/i.test(h)),
+    site: header.findIndex(h => /Website/i.test(h)),
+    addr: header.findIndex(h => /Adresse/i.test(h)),
   };
   return rows.slice(1).map(r=>{
-    const d=parseGermanDate(r[idx.date]);
-    if(!d||!r[idx.title]) return null;
-    return{
+    const d = parseGermanDate(r[idx.date]);
+    const title = (r[idx.title]||'').trim();
+    if (!d || !title) return null;
+    const ev = {
       date:new Date(d.getFullYear(),d.getMonth(),d.getDate()),
-      title:String(r[idx.title]||'').trim(),
+      title,
       type:String(r[idx.type]||'').trim(),
       info:String(r[idx.info]||'').trim(),
       dist:String(r[idx.dist]||'').trim(),
       site:sanitizeUrl(String(r[idx.site]||'').trim()),
       addr:String(r[idx.addr]||'').trim()
     };
+    ev.eventId = eventIdFor(ev);
+    return ev;
   }).filter(Boolean);
 }
+function eventIdFor(ev){ return yyyyMMdd(ev.date) + '-' + slug(ev.title); }
 
-/* Globals */
-let ALL_EVENTS=[]; let CUR=(d=>({y:d.getFullYear(),m:d.getMonth()}))(new Date());
-const $=s=>document.querySelector(s);
+/* ========== STATE ========== */
+let ALL_EVENTS = [];
+let CUR = (d => ({y:d.getFullYear(), m:d.getMonth()}))(new Date());
+const $ = s => document.querySelector(s);
 
-/* Render Calendar */
+/* Votes state */
+let VOTE_TOTALS = {};  // eventId -> { up, down, score }
+let MY_VOTES = {};     // eventId -> -1|0|1 (this device's last vote)
+
+/* Device ID */
+function getDeviceId(){
+  const k='startlist_device_id';
+  let id = localStorage.getItem(k);
+  if (!id) { id = (crypto.randomUUID && crypto.randomUUID()) || ('d-' + Math.random().toString(36).slice(2) + Date.now().toString(36)); localStorage.setItem(k,id); }
+  return id;
+}
+
+/* ========== RENDER: CALENDAR ========== */
 function renderCalendar(){
-  $('#monthLabel').textContent=new Date(CUR.y,CUR.m,1).toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+  $('#monthLabel').textContent = new Date(CUR.y,CUR.m,1).toLocaleDateString('de-DE',{month:'long',year:'numeric'});
   const grid=$('#calGrid'); grid.innerHTML='';
   const start=new Date(CUR.y,CUR.m,1); start.setDate(1-((start.getDay()+6)%7));
   const end=new Date(start); end.setDate(end.getDate()+41);
+
   const q=$('#searchBox').value.toLowerCase(), type=$('#typeFilter').value;
   const evByDay=new Map();
   for(const ev of ALL_EVENTS){
-    if(type&&ev.type!==type) continue;
+    if(type && ev.type!==type) continue;
     if(q && !(ev.title.toLowerCase().includes(q)||ev.info.toLowerCase().includes(q)||ev.dist.toLowerCase().includes(q)||ev.addr.toLowerCase().includes(q))) continue;
     const key=fmtDayKey(ev.date);
     if(!evByDay.has(key)) evByDay.set(key,[]);
     evByDay.get(key).push(ev);
   }
   const todayKey=fmtDayKey(new Date());
-  for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
+  for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
     const key=fmtDayKey(d), inMonth=d.getMonth()===CUR.m;
     const day=document.createElement('div'); day.className='day'+(inMonth?'':' muted'); day.tabIndex=0;
     const num=document.createElement('div'); num.className='num'; num.textContent=d.getDate();
@@ -257,53 +265,76 @@ function renderCalendar(){
       const pop=document.createElement('div'); pop.className='events-pop';
       evs.forEach(e=>{
         const p=document.createElement('div'); p.className='ev';
-        p.innerHTML=`<div class="title">${escapeHTML(e.title)}</div>
-          <div class="meta">${escapeHTML(e.type||'–')} ${e.dist? '• '+escapeHTML(e.dist):''}</div>
+        const tally = VOTE_TOTALS[e.eventId] || {up:0,down:0,score:0};
+        p.innerHTML = `
+          <div class="title">${escapeHTML(e.title)}</div>
+          <div class="meta">${escapeHTML(e.type||'–')}${e.dist? ' • '+escapeHTML(e.dist):''}</div>
           ${e.addr? `<div class="meta">📍 ${escapeHTML(e.addr)}</div>`:''}
           ${e.info? `<div class="meta">${escapeHTML(e.info)}</div>`:''}
-          ${e.site? `<div class="meta"><a href="${e.site}" target="_blank" rel="noopener" class="site">Website</a></div>`:''}`;
+          ${e.site? `<div class="meta"><a href="${e.site}" target="_blank" rel="noopener" class="site">Website</a></div>`:''}
+          <div class="votes">
+            <button class="vbtn ${MY_VOTES[e.eventId]===1?'active':''}" data-eid="${e.eventId}" data-v="1" title="+1">▲</button>
+            <span class="score" id="score-${e.eventId}">${tally.score}</span>
+            <button class="vbtn ${MY_VOTES[e.eventId]===-1?'active':''}" data-eid="${e.eventId}" data-v="-1" title="-1">▼</button>
+          </div>
+        `;
         pop.appendChild(p);
       });
       day.appendChild(pop);
     }
     grid.appendChild(day);
   }
-  renderNextList();
 }
 
-/* Next Events */
+/* ========== RENDER: NEXT EVENTS ========== */
 function renderNextList(limit=10){
   const list=$('#nextList'); list.innerHTML='';
   const q=$('#searchBox').value.toLowerCase(), type=$('#typeFilter').value;
   const now=new Date(); now.setHours(0,0,0,0);
+
   const filtered=ALL_EVENTS.filter(ev=>{
     if(ev.date<now) return false;
-    if(type&&ev.type!==type) return false;
+    if(type && ev.type!==type) return false;
     if(q && !(ev.title.toLowerCase().includes(q)||ev.info.toLowerCase().includes(q)||ev.dist.toLowerCase().includes(q)||ev.addr.toLowerCase().includes(q))) return false;
     return true;
-  }).sort((a,b)=>a.date-b.date).slice(0,limit);
+  }).sort((a,b)=>a.date-b.date || a.title.localeCompare(b.title)).slice(0,limit);
+
   if(!filtered.length){list.innerHTML='<div class="card">Keine kommenden Events.</div>';return;}
+
   for(const ev of filtered){
     const card=document.createElement('div'); card.className='card';
+    const tally = VOTE_TOTALS[ev.eventId] || {up:0,down:0,score:0};
     const icsBlob=icsForEvent(ev); const icsUrl=URL.createObjectURL(icsBlob);
     const filename=slug(ev.title)+'-'+yyyyMMdd(ev.date)+'.ics';
-    card.innerHTML=`<div class="when">${fmtDate(ev.date)}</div>
+    card.innerHTML = `
+      <div class="when">${fmtDate(ev.date)}</div>
       <div class="title">${escapeHTML(ev.title)}</div>
       <div class="type">${escapeHTML(ev.type||'–')}</div>
       ${ev.addr? `<div class="type">📍 ${escapeHTML(ev.addr)}</div>`:''}
       <div class="badges">
         ${ev.dist? `<span class="badge ${colorClassFor(ev.type)}">${escapeHTML(ev.dist)}</span>`:''}
-        ${ev.info? `<span class="badge info">${escapeHTML(ev.info.slice(0,40))}</span>`:''}
+        ${ev.info? `<span class="badge info">${escapeHTML(ev.info.slice(0,60))}</span>`:''}
+      </div>
+      <div class="votes">
+        <button class="vbtn ${MY_VOTES[ev.eventId]===1?'active':''}" data-eid="${ev.eventId}" data-v="1" title="+1">▲</button>
+        <span class="score" id="score-${ev.eventId}">${tally.score}</span>
+        <button class="vbtn ${MY_VOTES[ev.eventId]===-1?'active':''}" data-eid="${ev.eventId}" data-v="-1" title="-1">▼</button>
       </div>
       <div class="btnline">
         <a class="ics" href="${icsUrl}" download="${filename}">.ics</a>
         ${ev.site? `<a class="site" href="${ev.site}" target="_blank" rel="noopener">Website</a>`:''}
-      </div>`;
+      </div>
+    `;
     list.appendChild(card);
   }
+
+  // Wire vote buttons
+  list.querySelectorAll('.vbtn').forEach(btn=>{
+    btn.addEventListener('click', onVoteClick);
+  });
 }
 
-/* Filters */
+/* ========== FILTER UI ========== */
 function populateTypeFilter(){
   const set=new Set(ALL_EVENTS.map(e=>e.type).filter(Boolean));
   const sel=$('#typeFilter'); const cur=sel.value;
@@ -312,7 +343,7 @@ function populateTypeFilter(){
   if(set.has(cur)) sel.value=cur;
 }
 
-/* ICS Generator */
+/* ========== ICS ========== */
 function icsForEvent(ev){
   const dt=yyyyMMdd(ev.date), dtEnd=yyyyMMdd(new Date(ev.date.getFullYear(),ev.date.getMonth(),ev.date.getDate()+1));
   const now=new Date();
@@ -324,31 +355,173 @@ function icsForEvent(ev){
     `SUMMARY:${icsEscape(ev.title)}`,
     ev.addr ? `LOCATION:${icsEscape(ev.addr)}` : '',
     ev.site ? `URL:${icsEscape(ev.site)}` : '',
-    `DESCRIPTION:${icsEscape([ev.type,ev.dist,ev.info,ev.site,ev.addr && 'Adresse: '+ev.addr].filter(Boolean).join('\\n'))}`,
+    `DESCRIPTION:${icsEscape([ev.type,ev.dist,ev.info,ev.site,ev.addr && ('Adresse: '+ev.addr)].filter(Boolean).join('\\n'))}`,
     'END:VEVENT','END:VCALENDAR'
   ].filter(Boolean);
   return new Blob([lines.join('\r\n')+'\r\n'],{type:'text/calendar'});
 }
 function icsEscape(s){return String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');}
 
-/* Helpers */
+/* ========== HELPERS ========== */
 function escapeHTML(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function colorClassFor(type){const t=(type||'').toLowerCase();if(t.includes('schwimm'))return'swim';if(t.includes('lauf'))return'run';if(t.includes('rad'))return'bike';if(t.includes('tri'))return'tri';return'other';}
+function showToast(msg){const el=$('#toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2800);}
 
-/* Init */
-async function init(){
+/* ========== PERSISTENCE & BG UPDATE ========== */
+function loadFromCache(){
   try{
-    ALL_EVENTS=await loadCSV(CSV_URL);
-    populateTypeFilter(); renderCalendar();
-    $('#prevBtn').onclick=()=>{CUR.m--;if(CUR.m<0){CUR.m=11;CUR.y--;}renderCalendar();};
-    $('#nextBtn').onclick=()=>{CUR.m++;if(CUR.m>11){CUR.m=0;CUR.y++;}renderCalendar();};
-    $('#todayBtn').onclick=()=>{const d=new Date();CUR={y:d.getFullYear(),m:d.getMonth()};renderCalendar();};
-    $('#typeFilter').onchange=renderCalendar;
-    $('#searchBox').oninput=renderCalendar;
-  }catch(e){console.error(e);alert('Events konnten nicht geladen werden.');}
+    const evs = localStorage.getItem(LS_EVENTS);
+    const ts  = localStorage.getItem(LS_TIME);
+    if (evs) {
+      ALL_EVENTS = JSON.parse(evs);
+      populateTypeFilter(); renderNextList(); renderCalendar();
+      if (ts) $('#lastUpdated').textContent = 'Stand: ' + new Date(+ts).toLocaleString('de-DE');
+      return true;
+    }
+  }catch(e){ console.warn('cache read failed', e); }
+  return false;
+}
+function saveToCache(csvText, events){
+  try{
+    localStorage.setItem(LS_TEXT, csvText);
+    localStorage.setItem(LS_EVENTS, JSON.stringify(events));
+    localStorage.setItem(LS_TIME, String(Date.now()));
+    $('#lastUpdated').textContent = 'Stand: ' + new Date().toLocaleString('de-DE');
+  }catch(e){ console.warn('cache write failed', e); }
+}
+async function refreshInBackground(opts={showToastOnChange:true}){
+  try{
+    const freshText = await fetchCSVWithTimeout(CSV_URL, 7000);
+    const oldText = localStorage.getItem(LS_TEXT) || '';
+    if (!freshText) return;
+    if (freshText !== oldText){
+      const rows = parseCSV(freshText);
+      const events = mapRowsToEvents(rows);
+      if (events.length){
+        ALL_EVENTS = events;
+        populateTypeFilter(); renderNextList(); renderCalendar();
+        saveToCache(freshText, events);
+        if (opts.showToastOnChange) showToast('Aktualisiert');
+      }
+    }
+  }catch(e){ console.log('bg refresh skipped:', e.message || e); }
 }
 
-/* PWA Service Worker */
+/* ========== VOTES API ========== */
+function loadMyVotes(){
+  try { MY_VOTES = JSON.parse(localStorage.getItem(MY_VOTES_KEY) || '{}'); }
+  catch { MY_VOTES = {}; }
+}
+function saveMyVotes(){
+  try { localStorage.setItem(MY_VOTES_KEY, JSON.stringify(MY_VOTES)); } catch {}
+}
+async function fetchTallies(){
+  if (!VOTES_API) return;
+  try {
+    const res = await fetch(VOTES_API + '?action=tallies', { cache:'no-store' });
+    const json = await res.json();
+    if (json && json.ok && json.totals) {
+      VOTE_TOTALS = json.totals;
+      // update visible scores
+      for (const [eid, t] of Object.entries(VOTE_TOTALS)) {
+        const el = document.getElementById('score-' + eid);
+        if (el) el.textContent = t.score;
+      }
+    }
+  } catch(e){ console.log('tallies fetch failed', e); }
+}
+async function sendVote(eventId, vote){
+  if (!VOTES_API) return;
+  const deviceId = getDeviceId();
+  const body = { eventId, deviceId, vote };
+  try{
+    await fetch(VOTES_API, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+  }catch(e){ console.log('vote send failed', e); }
+}
+function onVoteClick(e){
+  const btn = e.currentTarget;
+  const eid = btn.getAttribute('data-eid');
+  const newVote = Number(btn.getAttribute('data-v'));
+  const prev = MY_VOTES[eid] || 0;
+  let next = newVote;
+
+  // toggle if clicking same button -> set to 0 (clear)
+  if (prev === newVote) next = 0;
+
+  // optimistic update of local totals + UI
+  const t = VOTE_TOTALS[eid] || (VOTE_TOTALS[eid] = { up:0, down:0, score:0 });
+  // adjust score based on delta
+  const delta = next - prev; // e.g., 1 -> -1 => -2
+  t.score += delta;
+
+  // update UI score
+  const scoreEl = document.getElementById('score-' + eid);
+  if (scoreEl) scoreEl.textContent = t.score;
+
+  // update active states in both areas (cards & popovers)
+  document.querySelectorAll(`.vbtn[data-eid="${eid}"]`).forEach(b=>{
+    const v = Number(b.getAttribute('data-v'));
+    b.classList.toggle('active', v === next);
+  });
+
+  // persist my vote locally
+  MY_VOTES[eid] = next;
+  saveMyVotes();
+
+  // send to backend (no await UI)
+  sendVote(eid, next);
+
+  // schedule background refresh of tallies to reconcile
+  setTimeout(fetchTallies, 1500);
+}
+
+/* ========== INIT ========== */
+async function init(){
+  // set form links
+  document.getElementById('addBtn').href = FORM_URL;
+  document.getElementById('fabAdd').href = FORM_URL;
+
+  loadMyVotes();
+
+  // fast render from cache, then background refresh
+  const hadCache = loadFromCache();
+  if (!hadCache){
+    try{
+      const csvText = await fetchCSVWithTimeout(CSV_URL, 7000);
+      const rows = parseCSV(csvText);
+      ALL_EVENTS = mapRowsToEvents(rows);
+      populateTypeFilter(); renderNextList(); renderCalendar();
+      saveToCache(csvText, ALL_EVENTS);
+    }catch(e){ console.error(e); alert('Events konnten nicht geladen werden.'); }
+  }
+  refreshInBackground({showToastOnChange: hadCache});
+
+  // initial tallies (votes)
+  fetchTallies();
+  // periodic tallies refresh
+  setInterval(fetchTallies, 5*60*1000);
+  document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) fetchTallies(); });
+
+  // controls
+  $('#prevBtn').onclick=()=>{CUR.m--; if(CUR.m<0){CUR.m=11;CUR.y--;} renderCalendar();};
+  $('#nextBtn').onclick=()=>{CUR.m++; if(CUR.m>11){CUR.m=0;CUR.y++;} renderCalendar();};
+  $('#todayBtn').onclick=()=>{const d=new Date(); CUR={y:d.getFullYear(),m:d.getMonth()}; renderCalendar();};
+  $('#typeFilter').onchange=()=>{ renderNextList(); renderCalendar(); };
+  $('#searchBox').oninput =()=>{ renderNextList(); renderCalendar(); };
+  document.getElementById('refreshBtn').onclick = ()=> refreshInBackground({showToastOnChange:true});
+
+  // delegate vote clicks that appear in calendar popovers too
+  document.body.addEventListener('click', (ev)=>{
+    const t = ev.target.closest('.vbtn');
+    if (t && t.hasAttribute('data-eid')) { onVoteClick({ currentTarget: t }); }
+  });
+}
+
+/* ========== PWA SW ========== */
 if('serviceWorker' in navigator){
   window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(console.error);});
 }
