@@ -1,5 +1,5 @@
 /* sw.js for StartList */
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.0.2';
 const CACHE_STATIC = `startlist-static-${VERSION}`;
 const CACHE_DYNAMIC = `startlist-dynamic-${VERSION}`;
 
