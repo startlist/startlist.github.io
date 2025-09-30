@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>StartList</title>
+
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0b0c10">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<style>
+  :root{--bg:#0b0c10;--card:#12141a;--ink:#e8ecf1;--muted:#9aa6b2;--acc:#5b9cff;--grid:#1c2230}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:500 15px/1.45 system-ui,Segoe UI,Roboto,Inter,Arial}
+  .app{max-width:960px;margin:0 auto;padding:12px}
+  header{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+  h1{font-size:20px;margin:0}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px}
+  .controls{display:flex;gap:6px}
+  button,select,input[type="search"],a.ics,a.site,a.add{
+    background:var(--card);color:var(--ink);border:1px solid #242a38;border-radius:10px;padding:6px 10px;font-size:14px;text-decoration:none;cursor:pointer
+  }
+  button:hover,a.ics:hover,a.site:hover,a.add:hover{border-color:#2f384b}
+  input[type="search"]{min-width:0;flex:1}
+  .grid{display:grid;grid-template-columns:1fr;gap:10px}
+  .panel{background:var(--card);border:1px solid #1b2130;border-radius:14px;padding:10px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+  .cal-head{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:2px 1px 6px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+  .cal-head div{text-align:center}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .day{position:relative;min-height:56px;padding:6px;border:1px solid var(--grid);border-radius:10px;background:linear-gradient(180deg,#12141a,#0f121a)}
+  .day.muted{color:#6b7786;opacity:.8}
+  .day .num{font-size:12px}
+  .dots{position:absolute;left:6px;bottom:6px;display:flex;gap:4px;flex-wrap:wrap}
+  .dot{width:8px;height:8px;border-radius:50%;box-shadow:0 0 0 2px rgba(0,0,0,.25)}
+  .events-pop{position:absolute;z-index:3;left:4px;right:4px;bottom:30px;background:#0c1018;border:1px solid #273146;border-radius:12px;padding:6px;display:none}
+  .day:focus-within .events-pop,.day:hover .events-pop{display:block}
+  .ev{font-size:12px;padding:4px 6px;border-radius:9px;background:#141927;border:1px solid #20283a;margin:3px 0}
+  .ev .title{font-weight:600}
+  .ev .meta{color:var(--muted);font-size:11px}
+  .aside h2{font-size:16px;margin:4px 0 8px}
+  .list{display:flex;flex-direction:column;gap:8px}
+  .card{background:#0f131c;border:1px solid #21293b;border-radius:12px;padding:10px}
+  .when{color:var(--muted);font-size:13px}
+  .title{font-size:15px;font-weight:700}
+  .type{font-size:12px;color:#b2c1d1}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+  .badge{font-size:11px;padding:3px 6px;border-radius:8px;border:1px solid #2a3550}
+  .badge.info{background:#37474F;color:#fff;border:1px solid #455A64}
+  .swim{background:#2196F3;color:#fff}
+  .run{background:#E53935;color:#fff}
+  .bike{background:#43A047;color:#fff}
+  .tri{background:#8E24AA;color:#fff}
+  .other{background:#FFD166;color:#000}
+  .btnline{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+  a.ics,a.site{font-size:12px}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>StartList</h1>
+    <div class="toolbar">
+      <div class="controls">
+        <button id="prevBtn">◀</button>
+        <div id="monthLabel"></div>
+        <button id="nextBtn">▶</button>
+        <button id="todayBtn">Heute</button>
+      </div>
+      <select id="typeFilter"><option value="">Alle Typen</option></select>
+      <input id="searchBox" type="search" placeholder="Suche…" />
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel calendar">
+      <div class="cal-head">
+        <div>Mo</div><div>Di</div><div>Mi</div><div>Do</div><div>Fr</div><div>Sa</div><div>So</div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="hint">Tipp: Hover/Tippen auf ein Datum zeigt Events. „Next Events“ passt sich den Filtern an.</div>
+    </section>
+    <aside class="panel aside">
+      <h2>Nächste Events</h2>
+      <div id="nextList" class="list"></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const CSV_URL = "https://docs.google.com/spreadsheets/d/1qjMcZh8LuMe7aUglPClULLGtmIR3xBpLzzQvTGbLRLg/gviz/tq?tqx=out:csv&sheet=Sheet1";
+
+document.addEventListener('DOMContentLoaded', init);
+
+/* CSV Parser */
+function parseCSV(text){
+  const rows=[],re=/("([^"]|"")*"|[^,\n\r]*)(,|\r?\n|\r|$)/g;
+  let m,row=[];
+  while((m=re.exec(text))!==null){
+    let v=m[1]; if(v.startsWith('"')) v=v.slice(1,-1).replace(/""/g,'"');
+    row.push(v);
+    if(m[3]!==',' && m[3]!==''){rows.push(row);row=[];}
+  }
+  return rows;
+}
+
+/* Date utils */
+function parseGermanDate(s){
+  if(!s) return null; s=String(s).trim();
+  const m=s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+  if(m) return new Date(+m[3],+m[2]-1,+m[1]);
+  return new Date(s);
+}
+function fmtDate(d){return d.toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});}
+function fmtDayKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,'0')+"-"+String(d.getDate()).padStart(2,'0');}
+function yyyyMMdd(d){return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
+function slug(s){return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');}
+
+/* Data loading */
+async function loadCSV(url){
+  const r=await fetch(url); if(!r.ok) throw new Error(r.status);
+  const rows=parseCSV(await r.text()); if(!rows.length) return [];
+  const header=rows[0].map(h=>h.trim());
+  const idx={
+    date:header.findIndex(h=>/Wann findet/.test(h)),
+    title:header.findIndex(h=>/Eventtitel/.test(h)),
+    type:header.findIndex(h=>/Typ/.test(h)),
+    info:header.findIndex(h=>/Infos/.test(h)),
+    dist:header.findIndex(h=>/Distanz/.test(h)),
+    site:header.findIndex(h=>/Website/.test(h))
+  };
+  return rows.slice(1).map(r=>{
+    const d=parseGermanDate(r[idx.date]);
+    if(!d||!r[idx.title]) return null;
+    return{
+      date:new Date(d.getFullYear(),d.getMonth(),d.getDate()),
+      title:String(r[idx.title]||'').trim(),
+      type:String(r[idx.type]||'').trim(),
+      info:String(r[idx.info]||'').trim(),
+      dist:String(r[idx.dist]||'').trim(),
+      site:String(r[idx.site]||'').trim()
+    };
+  }).filter(Boolean);
+}
+
+/* Globals */
+let ALL_EVENTS=[]; let CUR=(d=>({y:d.getFullYear(),m:d.getMonth()}))(new Date());
+const $=s=>document.querySelector(s);
+
+/* Render Calendar */
+function renderCalendar(){
+  $('#monthLabel').textContent=new Date(CUR.y,CUR.m,1).toLocaleDateString('de-DE',{month:'long',year:'numeric'});
+  const grid=$('#calGrid'); grid.innerHTML='';
+  const start=new Date(CUR.y,CUR.m,1); start.setDate(1-((start.getDay()+6)%7));
+  const end=new Date(start); end.setDate(end.getDate()+41);
+  const q=$('#searchBox').value.toLowerCase(), type=$('#typeFilter').value;
+  const evByDay=new Map();
+  for(const ev of ALL_EVENTS){
+    if(type&&ev.type!==type) continue;
+    if(q && !(ev.title.toLowerCase().includes(q)||ev.info.toLowerCase().includes(q)||ev.dist.toLowerCase().includes(q))) continue;
+    const key=fmtDayKey(ev.date);
+    if(!evByDay.has(key)) evByDay.set(key,[]);
+    evByDay.get(key).push(ev);
+  }
+  const todayKey=fmtDayKey(new Date());
+  for(let d=new Date(start);d<=end;d.setDate(d.getDate()+1)){
+    const key=fmtDayKey(d), inMonth=d.getMonth()===CUR.m;
+    const day=document.createElement('div'); day.className='day'+(inMonth?'':' muted'); day.tabIndex=0;
+    const num=document.createElement('div'); num.className='num'; num.textContent=d.getDate();
+    if(key===todayKey){num.style.color='var(--acc)';num.style.fontWeight='700';}
+    day.appendChild(num);
+    const evs=evByDay.get(key)||[];
+    if(evs.length){
+      const dots=document.createElement('div'); dots.className='dots';
+      evs.slice(0,4).forEach(e=>{const dot=document.createElement('span'); dot.className='dot '+colorClassFor(e.type); dots.appendChild(dot);});
+      day.appendChild(dots);
+      const pop=document.createElement('div'); pop.className='events-pop';
+      evs.forEach(e=>{
+        const p=document.createElement('div'); p.className='ev';
+        p.innerHTML=`<div class="title">${escapeHTML(e.title)}</div>
+          <div class="meta">${escapeHTML(e.type||'–')} ${e.dist? '• '+escapeHTML(e.dist):''}</div>
+          ${e.info? `<div class="meta">${escapeHTML(e.info)}`:''}
+          ${e.site? `<div class="meta"><a href="${e.site}" target="_blank" class="site">Website</a></div>`:''}`;
+        pop.appendChild(p);
+      });
+      day.appendChild(pop);
+    }
+    grid.appendChild(day);
+  }
+  renderNextList();
+}
+
+/* Next Events */
+function renderNextList(limit=10){
+  const list=$('#nextList'); list.innerHTML='';
+  const q=$('#searchBox').value.toLowerCase(), type=$('#typeFilter').value;
+  const now=new Date(); now.setHours(0,0,0,0);
+  const filtered=ALL_EVENTS.filter(ev=>{
+    if(ev.date<now) return false;
+    if(type&&ev.type!==type) return false;
+    if(q && !(ev.title.toLowerCase().includes(q)||ev.info.toLowerCase().includes(q)||ev.dist.toLowerCase().includes(q))) return false;
+    return true;
+  }).sort((a,b)=>a.date-b.date).slice(0,limit);
+  if(!filtered.length){list.innerHTML='<div class="card">Keine kommenden Events.</div>';return;}
+  for(const ev of filtered){
+    const card=document.createElement('div'); card.className='card';
+    const icsBlob=icsForEvent(ev); const icsUrl=URL.createObjectURL(icsBlob);
+    const filename=slug(ev.title)+'-'+yyyyMMdd(ev.date)+'.ics';
+    card.innerHTML=`<div class="when">${fmtDate(ev.date)}</div>
+      <div class="title">${escapeHTML(ev.title)}</div>
+      <div class="type">${escapeHTML(ev.type||'–')}</div>
+      <div class="badges">
+        ${ev.dist? `<span class="badge ${colorClassFor(ev.type)}">${escapeHTML(ev.dist)}</span>`:''}
+        ${ev.info? `<span class="badge info">${escapeHTML(ev.info.slice(0,40))}</span>`:''}
+      </div>
+      <div class="btnline">
+        <a class="ics" href="${icsUrl}" download="${filename}">.ics</a>
+        ${ev.site? `<a class="site" href="${ev.site}" target="_blank">Website</a>`:''}
+      </div>`;
+    list.appendChild(card);
+  }
+}
+
+/* Filters */
+function populateTypeFilter(){
+  const set=new Set(ALL_EVENTS.map(e=>e.type).filter(Boolean));
+  const sel=$('#typeFilter'); const cur=sel.value;
+  sel.innerHTML='<option value="">Alle Typen</option>';
+  [...set].sort().forEach(t=>{const opt=document.createElement('option');opt.value=t;opt.textContent=t;sel.appendChild(opt);});
+  if(set.has(cur)) sel.value=cur;
+}
+
+/* ICS Generator */
+function icsForEvent(ev){
+  const dt=yyyyMMdd(ev.date), dtEnd=yyyyMMdd(new Date(ev.date.getFullYear(),ev.date.getMonth(),ev.date.getDate()+1));
+  const now=new Date();
+  const uid=`${dt}-${slug(ev.title)}@startlist.local`;
+  const lines=[
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//StartList//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT',
+    `UID:${uid}`,`DTSTAMP:${now.toISOString().replace(/[-:.]/g,'').slice(0,15)}Z`,
+    `DTSTART;VALUE=DATE:${dt}`,`DTEND;VALUE=DATE:${dtEnd}`,
+    `SUMMARY:${icsEscape(ev.title)}`,`DESCRIPTION:${icsEscape([ev.type,ev.dist,ev.info,ev.site].filter(Boolean).join('\\n'))}`,
+    'END:VEVENT','END:VCALENDAR'
+  ];
+  return new Blob([lines.join('\r\n')+'\r\n'],{type:'text/calendar'});
+}
+function icsEscape(s){return String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');}
+
+/* Helpers */
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function colorClassFor(type){const t=(type||'').toLowerCase();if(t.includes('schwimm'))return'swim';if(t.includes('lauf'))return'run';if(t.includes('rad'))return'bike';if(t.includes('tri'))return'tri';return'other';}
+
+/* Init */
+async function init(){
+  try{
+    ALL_EVENTS=await loadCSV(CSV_URL);
+    populateTypeFilter(); renderCalendar();
+    $('#prevBtn').onclick=()=>{CUR.m--;if(CUR.m<0){CUR.m=11;CUR.y--;}renderCalendar();};
+    $('#nextBtn').onclick=()=>{CUR.m++;if(CUR.m>11){CUR.m=0;CUR.y++;}renderCalendar();};
+    $('#todayBtn').onclick=()=>{const d=new Date();CUR={y:d.getFullYear(),m:d.getMonth()};renderCalendar();};
+    $('#typeFilter').onchange=renderCalendar;
+    $('#searchBox').oninput=renderCalendar;
+  }catch(e){console.error(e);alert('Events konnten nicht geladen werden.');}
+}
+
+/* PWA Service Worker */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(console.error);});
+}
+</script>
+</body>
+</html>
