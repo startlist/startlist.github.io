@@ -93,16 +93,86 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/1qjMcZh8LuMe7aUglPClULLG
 document.addEventListener('DOMContentLoaded', init);
 
 /* CSV Parser */
-function parseCSV(text){
-  const rows=[],re=/("([^"]|"")*"|[^,\n\r]*)(,|\r?\n|\r|$)/g;
-  let m,row=[];
-  while((m=re.exec(text))!==null){
-    let v=m[1]; if(v.startsWith('"')) v=v.slice(1,-1).replace(/""/g,'"');
-    row.push(v);
-    if(m[3]!==',' && m[3]!==''){rows.push(row);row=[];}
+function parseCSV(text) {
+  // strip BOM
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+  // auto-detect delimiter from the first line
+  const firstLine = text.split(/\r\n|\n|\r/, 1)[0] ?? '';
+  // count commas/semicolons outside quotes (simple heuristic)
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  const semiCount  = (firstLine.match(/;/g) || []).length;
+  const delim = semiCount > commaCount ? ';' : ',';
+
+  const rows = [];
+  let row = [];
+  let cur = '';
+  let i = 0;
+  let inQuotes = false;
+
+  while (i < text.length) {
+    const c = text[i];
+
+    if (inQuotes) {
+      if (c === '"') {
+        const n = text[i + 1];
+        if (n === '"') { // escaped quote
+          cur += '"';
+          i += 2;
+          continue;
+        } else {
+          inQuotes = false;
+          i++;
+          continue;
+        }
+      } else {
+        cur += c;
+        i++;
+        continue;
+      }
+    } else {
+      if (c === '"') {
+        inQuotes = true;
+        i++;
+        continue;
+      }
+      if (c === delim) {
+        row.push(cur);
+        cur = '';
+        i++;
+        continue;
+      }
+      if (c === '\n') {
+        row.push(cur);
+        rows.push(row);
+        row = [];
+        cur = '';
+        i++;
+        continue;
+      }
+      if (c === '\r') {
+        // handle \r or \r\n
+        row.push(cur);
+        rows.push(row);
+        row = [];
+        cur = '';
+        if (text[i + 1] === '\n') i += 2; else i += 1;
+        continue;
+      }
+      cur += c;
+      i++;
+    }
   }
-  return rows;
+  // push the last field/row even if no newline at EOF
+  if (cur.length > 0 || row.length > 0) {
+    row.push(cur);
+    rows.push(row);
+  }
+
+  // remove completely empty rows
+  return rows.filter(r => r.length && r.some(v => v !== ''));
 }
+
 
 /* Date utils */
 function parseGermanDate(s){
@@ -116,6 +186,14 @@ function fmtDayKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart
 function yyyyMMdd(d){return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
 function slug(s){return String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');}
 
+/* URL sanitizer */
+function sanitizeUrl(u){
+  if(!u) return '';
+  if(/^www\./i.test(u)) return 'https://' + u;
+  if(!/^https?:\/\//i.test(u)) return 'https://' + u;
+  return u;
+}
+
 /* Data loading */
 async function loadCSV(url){
   const r=await fetch(url); if(!r.ok) throw new Error(r.status);
@@ -127,7 +205,8 @@ async function loadCSV(url){
     type:header.findIndex(h=>/Typ/.test(h)),
     info:header.findIndex(h=>/Infos/.test(h)),
     dist:header.findIndex(h=>/Distanz/.test(h)),
-    site:header.findIndex(h=>/Website/.test(h))
+    site:header.findIndex(h=>/Website/.test(h)),
+    addr:header.findIndex(h=>/Adresse/i.test(h))     // NEW
   };
   return rows.slice(1).map(r=>{
     const d=parseGermanDate(r[idx.date]);
@@ -138,7 +217,8 @@ async function loadCSV(url){
       type:String(r[idx.type]||'').trim(),
       info:String(r[idx.info]||'').trim(),
       dist:String(r[idx.dist]||'').trim(),
-      site:String(r[idx.site]||'').trim()
+      site:sanitizeUrl(String(r[idx.site]||'').trim()),
+      addr:String(r[idx.addr]||'').trim()
     };
   }).filter(Boolean);
 }
@@ -157,7 +237,7 @@ function renderCalendar(){
   const evByDay=new Map();
   for(const ev of ALL_EVENTS){
     if(type&&ev.type!==type) continue;
-    if(q && !(ev.title.toLowerCase().includes(q)||ev.info.toLowerCase().includes(q)||ev.dist.toLowerCase().includes(q))) continue;
+    if(q && !(ev.title.toLowerCase().includes(q)||ev.info.toLowerCase().includes(q)||ev.dist.toLowerCase().includes(q)||ev.addr.toLowerCase().includes(q))) continue;
     const key=fmtDayKey(ev.date);
     if(!evByDay.has(key)) evByDay.set(key,[]);
     evByDay.get(key).push(ev);
@@ -179,8 +259,9 @@ function renderCalendar(){
         const p=document.createElement('div'); p.className='ev';
         p.innerHTML=`<div class="title">${escapeHTML(e.title)}</div>
           <div class="meta">${escapeHTML(e.type||'–')} ${e.dist? '• '+escapeHTML(e.dist):''}</div>
-          ${e.info? `<div class="meta">${escapeHTML(e.info)}`:''}
-          ${e.site? `<div class="meta"><a href="${e.site}" target="_blank" class="site">Website</a></div>`:''}`;
+          ${e.addr? `<div class="meta">📍 ${escapeHTML(e.addr)}</div>`:''}
+          ${e.info? `<div class="meta">${escapeHTML(e.info)}</div>`:''}
+          ${e.site? `<div class="meta"><a href="${e.site}" target="_blank" rel="noopener" class="site">Website</a></div>`:''}`;
         pop.appendChild(p);
       });
       day.appendChild(pop);
@@ -198,7 +279,7 @@ function renderNextList(limit=10){
   const filtered=ALL_EVENTS.filter(ev=>{
     if(ev.date<now) return false;
     if(type&&ev.type!==type) return false;
-    if(q && !(ev.title.toLowerCase().includes(q)||ev.info.toLowerCase().includes(q)||ev.dist.toLowerCase().includes(q))) return false;
+    if(q && !(ev.title.toLowerCase().includes(q)||ev.info.toLowerCase().includes(q)||ev.dist.toLowerCase().includes(q)||ev.addr.toLowerCase().includes(q))) return false;
     return true;
   }).sort((a,b)=>a.date-b.date).slice(0,limit);
   if(!filtered.length){list.innerHTML='<div class="card">Keine kommenden Events.</div>';return;}
@@ -209,13 +290,14 @@ function renderNextList(limit=10){
     card.innerHTML=`<div class="when">${fmtDate(ev.date)}</div>
       <div class="title">${escapeHTML(ev.title)}</div>
       <div class="type">${escapeHTML(ev.type||'–')}</div>
+      ${ev.addr? `<div class="type">📍 ${escapeHTML(ev.addr)}</div>`:''}
       <div class="badges">
         ${ev.dist? `<span class="badge ${colorClassFor(ev.type)}">${escapeHTML(ev.dist)}</span>`:''}
         ${ev.info? `<span class="badge info">${escapeHTML(ev.info.slice(0,40))}</span>`:''}
       </div>
       <div class="btnline">
         <a class="ics" href="${icsUrl}" download="${filename}">.ics</a>
-        ${ev.site? `<a class="site" href="${ev.site}" target="_blank">Website</a>`:''}
+        ${ev.site? `<a class="site" href="${ev.site}" target="_blank" rel="noopener">Website</a>`:''}
       </div>`;
     list.appendChild(card);
   }
@@ -239,9 +321,12 @@ function icsForEvent(ev){
     'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//StartList//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT',
     `UID:${uid}`,`DTSTAMP:${now.toISOString().replace(/[-:.]/g,'').slice(0,15)}Z`,
     `DTSTART;VALUE=DATE:${dt}`,`DTEND;VALUE=DATE:${dtEnd}`,
-    `SUMMARY:${icsEscape(ev.title)}`,`DESCRIPTION:${icsEscape([ev.type,ev.dist,ev.info,ev.site].filter(Boolean).join('\\n'))}`,
+    `SUMMARY:${icsEscape(ev.title)}`,
+    ev.addr ? `LOCATION:${icsEscape(ev.addr)}` : '',
+    ev.site ? `URL:${icsEscape(ev.site)}` : '',
+    `DESCRIPTION:${icsEscape([ev.type,ev.dist,ev.info,ev.site,ev.addr && 'Adresse: '+ev.addr].filter(Boolean).join('\\n'))}`,
     'END:VEVENT','END:VCALENDAR'
-  ];
+  ].filter(Boolean);
   return new Blob([lines.join('\r\n')+'\r\n'],{type:'text/calendar'});
 }
 function icsEscape(s){return String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');}
