@@ -127,11 +127,11 @@ const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScPCj_Ek48cNRdwLCvLHD
 /* Replace with your deployed Apps Script web app URL (/exec) */
 const VOTES_API = "https://script.google.com/macros/s/AKfycbyyVYdJud6psEk7RBMP07f0hcebahpGHYaGFOK9oOBdim4tb6zPUM_sknCtwuXWWDFx2g/exec";
 /* Cache keys */
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const LS_TEXT   = `startlist_csv_text_${CACHE_VERSION}`;
 const LS_EVENTS = `startlist_events_${CACHE_VERSION}`;
 const LS_TIME   = `startlist_cached_at_${CACHE_VERSION}`;
-const MY_VOTES_KEY = 'startlist_myvotes_v3';
+const MY_VOTES_KEY = 'startlist_myvotes_v4';
 
 /* ========= READY ========= */
 document.addEventListener('DOMContentLoaded', init);
@@ -533,3 +533,4 @@ if('serviceWorker' in navigator){
 </script>
 </body>
 </html>
+
