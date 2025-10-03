@@ -128,18 +128,18 @@
                                                                                                                                                                                                                                                                                                                                           <a id="fabAdd" class="fab" target="_blank" rel="noopener">＋ Event</a>
                                                                                                                                                                                                                                                                                                                                           <div id="toast" class="toast">Aktualisiert</div>
 
-                                                                                                                                                                                                                                                                                                                                          <script>
-                                                                                                                                                                                                                                                                                                                                          /* ========= CONFIG ========= */
-                                                                                                                                                                                                                                                                                                                                          const CSV_URL  = "https://docs.google.com/spreadsheets/d/1qjMcZh8LuMe7aUglPClULLGtmIR3xBpLzzQvTGbLRLg/gviz/tq?tqx=out:csv&sheet=Sheet1";
-                                                                                                                                                                                                                                                                                                                                          const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScPCj_Ek48cNRdwLCvLHDwYnJhf0lpZFVXFWKwwLu_NkS8uCA/viewform";
-                                                                                                                                                                                                                                                                                                                                          const VOTES_API = "https://script.google.com/macros/s/AKfycbwu_rPYes7wutUHbHzf0PfzbjCvW3IOFQf-NFAPtoe57x0K0crhm66fKJhpsZ4oWGdk/exec";
-
-                                                                                                                                                                                                                                                                                                                                          /* Cache keys */
-                                                                                                                                                                                                                                                                                                                                          const CACHE_VERSION = 'v6';
-                                                                                                                                                                                                                                                                                                                                          const LS_TEXT   = `startlist_csv_text_${CACHE_VERSION}`;
-                                                                                                                                                                                                                                                                                                                                          const LS_EVENTS = `startlist_events_${CACHE_VERSION}`;
-                                                                                                                                                                                                                                                                                                                                          const LS_TIME   = `startlist_cached_at_${CACHE_VERSION}`;
-                                                                                                                                                                                                                                                                                                                                          const MY_VOTES_KEY = 'startlist_myvotes_v3';
+<script>
+/* ========= CONFIG ========= */
+const CSV_URL  = "https://docs.google.com/spreadsheets/d/1qjMcZh8LuMe7aUglPClULLGtmIR3xBpLzzQvTGbLRLg/gviz/tq?tqx=out:csv&sheet=Sheet1";
+const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScPCj_Ek48cNRdwLCvLHDwYnJhf0lpZFVXFWKwwLu_NkS8uCA/viewform";
+/* Replace with your deployed Apps Script web app URL (/exec) */
+const VOTES_API = "https://script.google.com/macros/s/AKfycbyyVYdJud6psEk7RBMP07f0hcebahpGHYaGFOK9oOBdim4tb6zPUM_sknCtwuXWWDFx2g/exec";
+/* Cache keys */
+const CACHE_VERSION = 'v6';
+const LS_TEXT   = `startlist_csv_text_${CACHE_VERSION}`;
+const LS_EVENTS = `startlist_events_${CACHE_VERSION}`;
+const LS_TIME   = `startlist_cached_at_${CACHE_VERSION}`;
+const MY_VOTES_KEY = 'startlist_myvotes_v4';
 
                                                                                                                                                                                                                                                                                                                                           /* ========= READY ========= */
                                                                                                                                                                                                                                                                                                                                           document.addEventListener('DOMContentLoaded', init);
@@ -415,17 +415,176 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             if(set.has(cur)) sel.value=cur; else sel.value='';
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            /* ========= ICS ========= */
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            function icsForEvent(ev){
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              if(!(ev.date instanceof Date) || isNaN(ev.date)) return new Blob(['BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n'],{type:'text/calendar'});
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                const dt=yyyyMMdd(ev.date), dtEnd=yyyyMMdd(new Date(ev.date.getFullYear(),ev.date.getMonth(),ev.date.getDate()+1));
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  const now=new Date();
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    const uid=`${dt}-${slug(ev.title)}@startlist.local`;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      const lines=[
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//StartList//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT',
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              `UID:${uid}`,`DTSTAMP:${now.toISOString().replace(/[-:.]/g,'').slice(0,15)}Z`,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  `DTSTART;VALUE=DATE:${dt}`,`DTEND;VALUE=DATE:${dtEnd}`,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      `SUMMARY:${icsEscape(ev.title)}`,
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          ev.addr ? `LOCATION:${icsEscape(ev.addr)}` : '',
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              ev.site ? `URL:${icsEscape(ev.site)}` : '',
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  `DESCRIPTION:$
+/* ========= ICS ========= */
+function icsForEvent(ev){
+  if(!(ev.date instanceof Date) || isNaN(ev.date)) return new Blob(['BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n'],{type:'text/calendar'});
+  const dt=yyyyMMdd(ev.date), dtEnd=yyyyMMdd(new Date(ev.date.getFullYear(),ev.date.getMonth(),ev.date.getDate()+1));
+  const now=new Date();
+  const uid=`${dt}-${slug(ev.title)}@startlist.local`;
+  const lines=[
+    'BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//StartList//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT',
+    `UID:${uid}`,`DTSTAMP:${now.toISOString().replace(/[-:.]/g,'').slice(0,15)}Z`,
+    `DTSTART;VALUE=DATE:${dt}`,`DTEND;VALUE=DATE:${dtEnd}`,
+    `SUMMARY:${icsEscape(ev.title)}`,
+    ev.addr ? `LOCATION:${icsEscape(ev.addr)}` : '',
+    ev.site ? `URL:${icsEscape(ev.site)}` : '',
+    `DESCRIPTION:${icsEscape([ev.type,ev.dist,ev.info,ev.site,ev.addr && ('Adresse: '+ev.addr)].filter(Boolean).join('\\n'))}`,
+    'END:VEVENT','END:VCALENDAR'
+  ].filter(Boolean);
+  return new Blob([lines.join('\r\n')+'\r\n'],{type:'text/calendar'});
+}
+function icsEscape(s){return String(s).replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');}
+
+/* ========= HELPERS ========= */
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function colorClassFor(type){const t=(type||'').toLowerCase();if(t.includes('schwimm'))return'swim';if(t.includes('lauf'))return'run';if(t.includes('rad'))return'bike';if(t.includes('tri'))return'tri';return'other';}
+function showToast(msg){const el=$('#toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2800);}
+
+/* ========= PERSISTENCE & BG UPDATE ========= */
+function loadFromCache(){
+  try{
+    const evs=localStorage.getItem(LS_EVENTS);
+    const ts =localStorage.getItem(LS_TIME);
+    if(evs){
+      ALL_EVENTS=reviveEvents(JSON.parse(evs));  // <-- fix: restore Date objects
+      populateTypeFilter(); renderNextList(); renderCalendar();
+      if(ts) $('#lastUpdated').textContent='Stand: '+new Date(+ts).toLocaleString('de-DE');
+      return true;
+    }
+  }catch(e){ console.warn('cache read failed', e); }
+  return false;
+}
+function saveToCache(csvText, events){
+  try{
+    localStorage.setItem(LS_TEXT, csvText);
+    localStorage.setItem(LS_EVENTS, JSON.stringify(events));
+    localStorage.setItem(LS_TIME, String(Date.now()));
+    $('#lastUpdated').textContent='Stand: '+new Date().toLocaleString('de-DE');
+  }catch(e){ console.warn('cache write failed', e); }
+}
+async function refreshInBackground(opts={showToastOnChange:true}){
+  try{
+    const freshText=await fetchCSVWithTimeout(CSV_URL,7000);
+    const oldText=localStorage.getItem(LS_TEXT)||'';
+    if(!freshText) return;
+    if(freshText!==oldText){
+      const rows=parseCSV(freshText);
+      const events=mapRowsToEvents(rows);
+      if(events.length){
+        ALL_EVENTS=events;
+        populateTypeFilter(); renderNextList(); renderCalendar();
+        saveToCache(freshText, events);
+        if(opts.showToastOnChange) showToast('Aktualisiert');
+      }
+    }
+  }catch(e){ console.log('bg refresh skipped:', e.message||e); }
+}
+
+/* ========= VOTES API ========= */
+function loadMyVotes(){ try{ MY_VOTES=JSON.parse(localStorage.getItem(MY_VOTES_KEY)||'{}'); }catch{ MY_VOTES={}; } }
+function saveMyVotes(){ try{ localStorage.setItem(MY_VOTES_KEY, JSON.stringify(MY_VOTES)); }catch{} }
+
+async function fetchTallies(){
+  if(!VOTES_API) return;
+  try{
+    const res=await fetch(VOTES_API+'?action=tallies',{cache:'no-store'});
+    const json=await res.json();
+    if(json && json.ok && json.totals){
+      VOTE_TOTALS=json.totals;
+      // update visible scores
+      for(const [eid,t] of Object.entries(VOTE_TOTALS)){
+        const el=document.getElementById('score-'+eid);
+        if(el) el.textContent=t.score;
+      }
+    }
+  }catch(e){ console.log('tallies fetch failed', e); }
+}
+
+async function sendVote(eventId, vote){
+  if(!VOTES_API) return;
+  const deviceId=getDeviceId();
+  const body=JSON.stringify({eventId,deviceId,vote}); // simple request (no preflight)
+  try{
+    await fetch(VOTES_API,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body
+    });
+  }catch(e){ console.log('vote send failed', e); }
+}
+
+function onVoteClick(e){
+  const btn=e.currentTarget || e.target.closest('.vbtn');
+  if(!btn) return;
+  const eid=btn.getAttribute('data-eid');
+  const newVote=Number(btn.getAttribute('data-v'));
+  const prev=MY_VOTES[eid]||0;
+  let next=newVote;
+  if(prev===newVote) next=0; // toggle off
+
+  const t=VOTE_TOTALS[eid]||(VOTE_TOTALS[eid]={up:0,down:0,score:0});
+  const delta=next-prev;
+  t.score+=delta;
+
+  const scoreEl=document.getElementById('score-'+eid);
+  if(scoreEl) scoreEl.textContent=t.score;
+
+  document.querySelectorAll(`.vbtn[data-eid="${eid}"]`).forEach(b=>{
+    const v=Number(b.getAttribute('data-v'));
+    b.classList.toggle('active', v===next);
+  });
+
+  MY_VOTES[eid]=next; saveMyVotes();
+  sendVote(eid,next);
+  setTimeout(fetchTallies,1500);
+}
+
+/* ========= INIT ========= */
+async function init(){
+  // form links
+  document.getElementById('addBtn').href=FORM_URL;
+  document.getElementById('fabAdd').href=FORM_URL;
+
+  loadMyVotes();
+
+  // render from cache, then refresh
+  const hadCache=loadFromCache();
+  if(!hadCache){
+    try{
+      const csvText=await fetchCSVWithTimeout(CSV_URL,7000);
+      const rows=parseCSV(csvText);
+      ALL_EVENTS=mapRowsToEvents(rows);
+      populateTypeFilter(); renderNextList(); renderCalendar();
+      saveToCache(csvText, ALL_EVENTS);
+    }catch(e){ console.error(e); alert('Events konnten nicht geladen werden.'); }
+  }
+  refreshInBackground({showToastOnChange: hadCache});
+
+  // votes
+  fetchTallies();
+  setInterval(fetchTallies, 5*60*1000);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) fetchTallies(); });
+
+  // controls
+  document.getElementById('prevBtn').onclick=()=>{CUR.m--; if(CUR.m<0){CUR.m=11;CUR.y--;} renderCalendar();};
+  document.getElementById('nextBtn').onclick=()=>{CUR.m++; if(CUR.m>11){CUR.m=0;CUR.y++;} renderCalendar();};
+  document.getElementById('todayBtn').onclick=()=>{const d=new Date(); CUR={y:d.getFullYear(),m:d.getMonth()}; renderCalendar();};
+  document.getElementById('typeFilter').onchange=()=>{ renderNextList(); renderCalendar(); };
+  document.getElementById('searchBox').oninput =()=>{ renderNextList(); renderCalendar(); };
+  document.getElementById('refreshBtn').onclick=()=> refreshInBackground({showToastOnChange:true});
+
+  // delegate vote clicks everywhere (list + calendar popovers)
+  document.body.addEventListener('click', (ev)=>{
+    const t=ev.target.closest('.vbtn');
+    if(t && t.hasAttribute('data-eid')) onVoteClick({currentTarget:t, target:t});
+  });
+}
+
+/* ========= PWA SW ========= */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(console.error);});
+}
+</script>
+</body>
+</html>
+
